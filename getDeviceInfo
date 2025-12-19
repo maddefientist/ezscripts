@@ -1,0 +1,83 @@
+  #!/bin/bash                                                                                                                                     
+                                                                                                                                                  
+  # Colors for output                                                                                                                             
+  GREEN='\033[0;32m'                                                                                                                              
+  BLUE='\033[0;34m'                                                                                                                               
+  YELLOW='\033[1;33m'                                                                                                                             
+  NC='\033[0m' # No Color                                                                                                                         
+                                                                                                                                                  
+  echo -e "${BLUE}========================================${NC}"                                                                                  
+  echo -e "${BLUE}  SYSTEM PERFORMANCE SNAPSHOT${NC}"                                                                                             
+  echo -e "${BLUE}========================================${NC}"                                                                                  
+  echo ""                                                                                                                                         
+                                                                                                                                                  
+  # System Info                                                                                                                                   
+  echo -e "${GREEN}[SYSTEM INFO]${NC}"                                                                                                            
+  echo "Hostname:    $(hostname)"                                                                                                                 
+  echo "Uptime:      $(uptime -p)"                                                                                                                
+  echo "Load Avg:    $(uptime | awk -F'load average:' '{print $2}')"                                                                              
+  echo "Date/Time:   $(date '+%Y-%m-%d %H:%M:%S %Z')"                                                                                             
+  echo ""                                                                                                                                         
+                                                                                                                                                  
+  # CPU                                                                                                                                           
+  echo -e "${GREEN}[CPU]${NC}"                                                                                                                    
+  lscpu | grep -E 'Model name|CPU\(s\)|Thread|MHz'                                                                                                
+  echo "CPU Usage:   $(top -bn1 | grep "Cpu(s)" | awk '{print $2}')% user, $(top -bn1 | grep "Cpu(s)" | awk '{print $4}')% system, $(top -bn1 | grep "Cpu(s)" | awk '{print $8}')% idle"
+  echo ""                                                                                                                                         
+                                                                                                                                                  
+  # Memory                                                                                                                                        
+  echo -e "${GREEN}[MEMORY]${NC}"                                                                                                                 
+  free -h | awk 'NR==1{print "              "$0} NR==2{print "RAM:          "$0} NR==3{print "Swap:         "$0}'                                 
+  echo ""                                                                                                                                         
+                                                                                                                                                  
+  # Disk Usage                                                                                                                                    
+  echo -e "${GREEN}[DISK USAGE - Main Mounts]${NC}"                                                                                               
+  df -h | grep -E 'Filesystem|/dev/mapper|unraid|nvme' | awk '{printf "%-40s %10s %10s %10s %6s\n", $1, $2, $3, $4, $5}'                          
+  echo ""                                                                                                                                         
+                                                                                                                                                  
+  # GPU                                                                                                                                           
+  echo -e "${GREEN}[GPU]${NC}"                                                                                                                    
+  lspci | grep -i vga                                                                                                                             
+  echo ""                                                                                                                                         
+                                                                                                                                                  
+  # Docker Containers                                                                                                                             
+  echo -e "${GREEN}[DOCKER CONTAINERS]${NC}"                                                                                                      
+  if command -v docker &> /dev/null; then                                                                                                         
+      docker ps --format "table {{.Names}}\t{{.Status}}\t{{.CPUPerc}}\t{{.MemUsage}}" 2>/dev/null || echo "Unable to get Docker stats"            
+  else                                                                                                                                            
+      echo "Docker not available"                                                                                                                 
+  fi                                                                                                                                              
+  echo ""                                                                                                                                         
+                                                                                                                                                  
+  # Network                                                                                                                                       
+  echo -e "${GREEN}[NETWORK - Active Connections]${NC}"                                                                                           
+  echo "Interface     IP Address"                                                                                                                 
+  ip -4 addr show | grep -E 'inet ' | awk '{print $NF "          " $2}' | column -t                                                               
+  echo ""                                                                                                                                         
+                                                                                                                                                  
+  # Top Processes                                                                                                                                 
+  echo -e "${GREEN}[TOP 10 PROCESSES BY CPU]${NC}"                                                                                                
+  ps aux --sort=-%cpu | head -11 | awk 'NR==1{print $0} NR>1{printf "%-10s %5s %5s %10s %s\n", $1, $3, $4, $11, $12}'                             
+  echo ""                                                                                                                                         
+                                                                                                                                                  
+  # NFS Mounts Status                                                                                                                             
+  echo -e "${GREEN}[NFS MOUNTS STATUS]${NC}"                                                                                                      
+  if command -v mountpoint &> /dev/null; then                                                                                                     
+      for mount in /mnt/unraid-media-user /mnt/unraid-appdata /mnt/unraid-backups; do                                                             
+          if [ -d "$mount" ]; then                                                                                                                
+              if mountpoint -q "$mount" 2>/dev/null; then                                                                                         
+                  echo -e "${mount}: ${GREEN}✓ MOUNTED${NC}"                                                                                      
+              else                                                                                                                                
+                  echo -e "${mount}: ${YELLOW}✗ NOT MOUNTED${NC}"                                                                                 
+              fi                                                                                                                                  
+          fi                                                                                                                                      
+      done                                                                                                                                        
+  else                                                                                                                                            
+      df -h | grep unraid                                                                                                                         
+  fi                                                                                                                                              
+  echo ""                                                                                                                                         
+                                                                                                                                                  
+  echo -e "${BLUE}========================================${NC}"                                                                                  
+  echo -e "${BLUE}  Snapshot complete${NC}"                                                                                                       
+  echo -e "${BLUE}========================================${NC}"                                                                                  
+                                                                 
